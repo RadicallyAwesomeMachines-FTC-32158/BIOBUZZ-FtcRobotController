@@ -29,12 +29,11 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import static java.lang.Math.*;
 
 /*
  * This file contains an example of a Linear "OpMode".
@@ -66,7 +65,7 @@ import static java.lang.Math.*;
 
 @TeleOp(name="Basic: Omni Linear OpMode", group="Linear OpMode")
 // @Disabled
-public class BasicOmniOpMode_Linear extends LinearOpMode {
+public class MainTeleOp extends LinearOpMode {
 
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
@@ -74,6 +73,11 @@ public class BasicOmniOpMode_Linear extends LinearOpMode {
     private DcMotor backLeftDrive = null;
     private DcMotor frontRightDrive = null;
     private DcMotor backRightDrive = null;
+    private DcMotor Intake_Motor = null;
+    private boolean intakeOn = false;
+    private CRServo crServo_Left;
+    private CRServo crServo_Right;
+    private CRServo crServo_paddle;
 
     @Override
     public void runOpMode() {
@@ -84,6 +88,10 @@ public class BasicOmniOpMode_Linear extends LinearOpMode {
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
+        Intake_Motor = hardwareMap.get(DcMotor.class, "Intake_Motor");
+        crServo_Left = hardwareMap.get(CRServo.class, "servo_right");
+        crServo_Right = hardwareMap.get(CRServo.class, "servo_left");
+        crServo_paddle = hardwareMap.get(CRServo.class, "servo_paddle");
 
         // ########################################################################################
         // !!!            IMPORTANT Drive Information. Test your motor directions.            !!!!!
@@ -99,13 +107,14 @@ public class BasicOmniOpMode_Linear extends LinearOpMode {
         backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
         backRightDrive.setDirection(DcMotor.Direction.FORWARD);
-
+        Intake_Motor.setDirection(DcMotor.Direction.FORWARD);
         // Wait for the game to start (driver presses START)
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
         waitForStart();
         runtime.reset();
+
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
@@ -115,6 +124,33 @@ public class BasicOmniOpMode_Linear extends LinearOpMode {
             double axial   = -gamepad1.left_stick_y;  // Note: pushing stick forward gives negative value
             double lateral =  gamepad1.left_stick_x;
             double yaw     =  gamepad1.right_stick_x;
+
+            if (gamepad1.left_trigger_pressed) {
+                crServo_Left.setPower(1.0);  // Spin forward at 100% power
+            } else if (gamepad1.left_bumper) {
+                crServo_Left.setPower(0.0); // Spin reverse at 100% power
+            }
+            if (gamepad1.right_trigger_pressed) {
+                crServo_Right.setPower(-1.0);  // Spin forward at 100% power
+            } else if (gamepad1.right_bumper) {
+                crServo_Right.setPower(0.0);
+            }
+            if (gamepad1.aWasPressed()) {
+                crServo_paddle.setPower(1.0);
+            }
+
+            if (gamepad1.xWasPressed()) {
+                intakeOn = !intakeOn;
+            }
+
+            if (intakeOn) {
+                Intake_Motor.setPower(1.0);
+
+            }
+            else {
+                Intake_Motor.setPower(0.0);
+            }
+
 
             // Combine the joystick requests for each axis-motion to determine each wheel's power.
             // Set up a variable for each drive wheel to save the power level for telemetry.
@@ -165,6 +201,10 @@ public class BasicOmniOpMode_Linear extends LinearOpMode {
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Front left/Right", "%4.2f, %4.2f", frontLeftPower, frontRightPower);
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f", backLeftPower, backRightPower);
+            telemetry.addData("CRServo Power", "%5.2f", crServo_Right.getPower());
+            telemetry.addData("CRServo Power", "%5.2f", crServo_Left.getPower());
+            telemetry.addData("CRServo Power", "%5.2f", crServo_paddle.getPower());
+
             telemetry.update();
         }
     }}
