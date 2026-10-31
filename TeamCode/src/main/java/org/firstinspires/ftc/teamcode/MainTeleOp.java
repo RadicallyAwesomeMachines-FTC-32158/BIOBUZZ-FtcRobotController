@@ -63,7 +63,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@TeleOp(name="Basic: Omni Linear OpMode", group="Linear OpMode")
+@TeleOp(name="MainOpMode", group="Linear OpMode")
 // @Disabled
 public class MainTeleOp extends LinearOpMode {
 
@@ -78,6 +78,10 @@ public class MainTeleOp extends LinearOpMode {
     private CRServo crServo_Left;
     private CRServo crServo_Right;
     private CRServo crServo_paddle;
+    private DcMotor flyWheel = null;
+    boolean spin = false;
+
+    boolean IntakeFrontMotorLeft = false;
 
     @Override
     public void runOpMode() {
@@ -92,6 +96,8 @@ public class MainTeleOp extends LinearOpMode {
         crServo_Left = hardwareMap.get(CRServo.class, "servo_right");
         crServo_Right = hardwareMap.get(CRServo.class, "servo_left");
         crServo_paddle = hardwareMap.get(CRServo.class, "servo_paddle");
+        flyWheel = hardwareMap.get(DcMotor.class, "Flywheel_Motor");
+
 
         // ########################################################################################
         // !!!            IMPORTANT Drive Information. Test your motor directions.            !!!!!
@@ -108,6 +114,8 @@ public class MainTeleOp extends LinearOpMode {
         frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
         backRightDrive.setDirection(DcMotor.Direction.FORWARD);
         Intake_Motor.setDirection(DcMotor.Direction.FORWARD);
+        flyWheel.setDirection(DcMotor.Direction.FORWARD);
+
         // Wait for the game to start (driver presses START)
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -124,33 +132,24 @@ public class MainTeleOp extends LinearOpMode {
             double axial   = -gamepad1.left_stick_y;  // Note: pushing stick forward gives negative value
             double lateral =  gamepad1.left_stick_x;
             double yaw     =  gamepad1.right_stick_x;
+// Puts all motors and servos except for movement on button Y except for paddlewhhel which we need no fix.
+            if (gamepad1.yWasPressed()) {
+                if (crServo_Left.getPower() == 0.0) {
+                    crServo_Left.setPower(1.0);
+                    crServo_Right.setPower(-1.0);
+                    Intake_Motor.setPower(1.0);
+                    flyWheel.setPower(0.25);
+                } else {
+                    crServo_Left.setPower(0.0);
+                    crServo_Right.setPower(0.0);
+                    Intake_Motor.setPower(0.0);
+                    flyWheel.setPower(0.0);
+                }
+            }
 
-            if (gamepad1.left_trigger_pressed) {
-                crServo_Left.setPower(1.0);  // Spin forward at 100% power
-            } else if (gamepad1.left_bumper) {
-                crServo_Left.setPower(0.0); // Spin reverse at 100% power
-            }
-            if (gamepad1.right_trigger_pressed) {
-                crServo_Right.setPower(-1.0);  // Spin forward at 100% power
-            } else if (gamepad1.right_bumper) {
-                crServo_Right.setPower(0.0);
-            }
             if (gamepad1.aWasPressed()) {
                 crServo_paddle.setPower(1.0);
             }
-
-            if (gamepad1.xWasPressed()) {
-                intakeOn = !intakeOn;
-            }
-
-            if (intakeOn) {
-                Intake_Motor.setPower(1.0);
-
-            }
-            else {
-                Intake_Motor.setPower(0.0);
-            }
-
 
             // Combine the joystick requests for each axis-motion to determine each wheel's power.
             // Set up a variable for each drive wheel to save the power level for telemetry.
