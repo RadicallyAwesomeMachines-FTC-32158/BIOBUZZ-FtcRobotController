@@ -132,7 +132,7 @@ public class MainTeleOp extends LinearOpMode {
             double axial   = -gamepad1.left_stick_y;  // Note: pushing stick forward gives negative value
             double lateral =  gamepad1.left_stick_x;
             double yaw     =  gamepad1.right_stick_x;
-// Puts all motors and servos except for movement on button Y except for paddlewhhel which we need no fix.
+// Puts all motors and servos except for movement on button Y except for paddlewheel which we need no fix.
             if (gamepad1.yWasPressed()) {
                 if (crServo_Left.getPower() == 0.0) {
                     crServo_Left.setPower(1.0);
