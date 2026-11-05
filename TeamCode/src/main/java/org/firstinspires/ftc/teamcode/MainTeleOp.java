@@ -95,12 +95,12 @@ public class MainTeleOp extends LinearOpMode {
             double lateral = gamepad1.left_stick_x;
             double yaw = gamepad1.right_stick_x;
 
-            if (gamepad1.yWasPressed()) {
+            if (gamepad1.a) {
                 if (crServo_Left.getPower() == 0.0) {
                     crServo_Left.setPower(0.25);
                     crServo_Right.setPower(-0.25);
                     Intake_Motor.setPower(1.0);
-                    flyWheel.setPower(0.25);
+                    flyWheel.setPower(0.55);
                 } else {
                     crServo_Left.setPower(0.0);
                     crServo_Right.setPower(0.0);
@@ -109,7 +109,7 @@ public class MainTeleOp extends LinearOpMode {
                 }
             }
 
-            if (gamepad1.a) {
+            if (gamepad1.right_trigger_pressed) {
                 crServo_paddle.setPower(-1);
             } else {
                 crServo_paddle.setPower(0);
