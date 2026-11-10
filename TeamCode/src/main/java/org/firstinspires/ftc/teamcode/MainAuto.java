@@ -53,6 +53,7 @@ public class MainAuto extends LinearOpMode {
     private CRServo crServo_Right;
     private CRServo crServo_paddle;
     private DcMotor flyWheel = null;
+    private static final double TICKS_PER_REV = 537.7;
 
     @Override
     public void runOpMode() {
@@ -69,7 +70,6 @@ public class MainAuto extends LinearOpMode {
         crServo_paddle = hardwareMap.get(CRServo.class, "servo_paddle");
         flyWheel = hardwareMap.get(DcMotor.class, "Flywheel_Motor");
 
-
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
@@ -84,14 +84,77 @@ public class MainAuto extends LinearOpMode {
         waitForStart();
         runtime.reset();
 
+        // number of revolutions the wheels will rotate
+        double numRevs = 0.5;
+        double numTicks = numRevs * TICKS_PER_REV;
+
+        // make each wheel rotate one full revolution (calculated through ticks)
+        double startingTicksFL = frontLeftDrive.getCurrentPosition();
+        frontLeftDrive.setTargetPosition((int)(startingTicksFL + numTicks));
+
+        double startingTicksFR = frontRightDrive.getCurrentPosition();
+        frontRightDrive.setTargetPosition((int)(startingTicksFR + numTicks));
+
+        double startingTicksBL = backLeftDrive.getCurrentPosition();
+        backLeftDrive.setTargetPosition((int)(startingTicksBL + numTicks));
+
+        double startingTicksBR = backRightDrive.getCurrentPosition();
+        backRightDrive.setTargetPosition((int)(startingTicksBR + numTicks));
+
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        double axial = 0; // -gamepad1.left_stick_y;
+        double lateral = 0; //gamepad1.left_stick_x;
+        double yaw = 0.25; //gamepad1.right_stick_x;
+
+        double frontLeftPower = axial + lateral + yaw;
+        double frontRightPower = axial - lateral - yaw;
+        double backLeftPower = axial - lateral + yaw;
+        double backRightPower = axial + lateral - yaw;
+
+        double max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
+        max = Math.max(max, Math.abs(backLeftPower));
+        max = Math.max(max, Math.abs(backRightPower));
+
+        if (max > 1.0) {
+            frontLeftPower /= max;
+            frontRightPower /= max;
+            backLeftPower /= max;
+            backRightPower /= max;
+        }
+
+        // set power for wheels
+        frontLeftDrive.setPower(frontLeftPower);
+        frontRightDrive.setPower(frontRightPower);
+        backLeftDrive.setPower(backLeftPower);
+        backRightDrive.setPower(backRightPower);
+
+        while (opModeIsActive()) {
+            if (!frontLeftDrive.isBusy() && !frontRightDrive.isBusy() && !backLeftDrive.isBusy() && !backRightDrive.isBusy()) {
+                break;
+            }
+
+            telemetry.addData("Front left/Right", "%4.2f, %4.2f", frontLeftPower, frontRightPower);
+            telemetry.addData("Back  left/Right", "%4.2f, %4.2f", backLeftPower, backRightPower);
+            telemetry.update();
+        }
 
         // run until the end of the match (driver presses STOP)
-        while (opModeIsActive() && (runtime.seconds() <3.0)) {
+        /* while (opModeIsActive() && (runtime.seconds() < 2.0)) {
             double max;
 
-            double axial = -gamepad1.left_stick_y;
-            double lateral = gamepad1.left_stick_x;
-            double yaw = gamepad1.right_stick_x;
+            // sets power so it runs w/o controller input
+            double axial = 0.75;// -gamepad1.left_stick_y;
+            double lateral = 0; //gamepad1.left_stick_x;
+            double yaw = 0; //gamepad1.right_stick_x;
 
             frontLeftDrive.setPower(0.75);
             frontRightDrive.setPower(0.75);
@@ -127,7 +190,8 @@ public class MainAuto extends LinearOpMode {
             telemetry.addData("CRServo Power", "%5.2f", crServo_Left.getPower());
             telemetry.addData("Paddle", "%5.2f", crServo_paddle.getPower());
             telemetry.update();
-        }
+        } */
+
         frontLeftDrive.setPower(0.0);
         frontRightDrive.setPower(0.0);
         backLeftDrive.setPower(0.0);
