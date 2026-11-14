@@ -83,17 +83,21 @@ public class MainTeleOp extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         waitForStart();
-        runtime.reset();
+
 
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
             double max;
 
-            double axial = -gamepad1.left_stick_y;
-            double lateral = gamepad1.left_stick_x;
-            double yaw = gamepad1.right_stick_x;
+            double y = -gamepad1.left_stick_y;
+            double x = gamepad1.left_stick_x;
+            double rx = gamepad1.right_stick_x;
 
             if (gamepad1.a) {
                 if (crServo_Left.getPower() == 0.0) {
@@ -114,22 +118,13 @@ public class MainTeleOp extends LinearOpMode {
             } else {
                 crServo_paddle.setPower(0);
             }
+            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1.0);
+            double frontLeftPower = (y + x + rx) / denominator;
+            double frontRightPower = (y - x + rx) / denominator;
+            double backLeftPower = (y - x - rx) / denominator;
+            double backRightPower = (y + x - rx) / denominator;
 
-            double frontLeftPower = axial + lateral + yaw;
-            double frontRightPower = axial - lateral - yaw;
-            double backLeftPower = axial - lateral + yaw;
-            double backRightPower = axial + lateral - yaw;
 
-            max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
-            max = Math.max(max, Math.abs(backLeftPower));
-            max = Math.max(max, Math.abs(backRightPower));
-
-            if (max > 1.0) {
-                frontLeftPower /= max;
-                frontRightPower /= max;
-                backLeftPower /= max;
-                backRightPower /= max;
-            }
 
             frontLeftDrive.setPower(frontLeftPower);
             frontRightDrive.setPower(frontRightPower);
@@ -143,6 +138,10 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addData("CRServo Power", "%5.2f", crServo_Right.getPower());
             telemetry.addData("CRServo Power", "%5.2f", crServo_Left.getPower());
             telemetry.addData("Paddle", "%5.2f", crServo_paddle.getPower());
+            telemetry.addData("FL Encoder", frontLeftDrive.getCurrentPosition());
+            telemetry.addData("FR Encoder", frontRightDrive.getCurrentPosition());
+            telemetry.addData("BL Encoder", backLeftDrive.getCurrentPosition());
+            telemetry.addData("BR Encoder", backRightDrive.getCurrentPosition());
             telemetry.update();
         }
     }
