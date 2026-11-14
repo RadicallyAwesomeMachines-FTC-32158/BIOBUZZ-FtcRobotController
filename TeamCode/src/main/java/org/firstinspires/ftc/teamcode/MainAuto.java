@@ -29,16 +29,13 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 
 @Autonomous(name="MainAuto", group="Linear OpMode")
@@ -51,12 +48,12 @@ public class MainAuto extends LinearOpMode {
     private DcMotor backLeftDrive = null;
     private DcMotor frontRightDrive = null;
     private DcMotor backRightDrive = null;
-    private DcMotorEx Intake_Motor = null;
+    private DcMotor Intake_Motor = null;
     private CRServo crServo_Left;
     private CRServo crServo_Right;
     private CRServo crServo_paddle;
     private DcMotor flyWheel = null;
-    private IMU imu = null;
+    private static final double TICKS_PER_REV = 537.7;
 
     @Override
     public void runOpMode() {
@@ -67,18 +64,11 @@ public class MainAuto extends LinearOpMode {
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
-        Intake_Motor = hardwareMap.get(DcMotorEx.class, "Intake_Motor");
+        Intake_Motor = hardwareMap.get(DcMotor.class, "Intake_Motor");
         crServo_Left = hardwareMap.get(CRServo.class, "servo_right");
         crServo_Right = hardwareMap.get(CRServo.class, "servo_left");
         crServo_paddle = hardwareMap.get(CRServo.class, "servo_paddle");
         flyWheel = hardwareMap.get(DcMotor.class, "Flywheel_Motor");
-
-        // imu set up, change the facing direction
-        imu = hardwareMap.get(IMU.class, "imu");
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.FORWARD,
-                RevHubOrientationOnRobot.UsbFacingDirection.UP));
-        imu.initialize(parameters);
-
 
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
@@ -91,73 +81,124 @@ public class MainAuto extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-
         waitForStart();
-
-
         runtime.reset();
 
+        // number of revolutions the wheels will rotate
+        double numRevs = 0.5;
+        double numTicks = numRevs * TICKS_PER_REV;
 
-        imu.resetYaw();
-        //put methods here
-        if (opModeIsActive()) {
-            driveStraightForTime(2.0, 0.5);
-            turnToHeading(-90, 0.25);
-            driveStraightForTime(3.0, 0.5);
-            stopRobot();
+        // make each wheel rotate one full revolution (calculated through ticks)
+        double startingTicksFL = frontLeftDrive.getCurrentPosition();
+        frontLeftDrive.setTargetPosition((int)(startingTicksFL + numTicks));
+
+        double startingTicksFR = frontRightDrive.getCurrentPosition();
+        frontRightDrive.setTargetPosition((int)(startingTicksFR - numTicks));
+
+        double startingTicksBL = backLeftDrive.getCurrentPosition();
+        backLeftDrive.setTargetPosition((int)(startingTicksBL - numTicks));
+
+        double startingTicksBR = backRightDrive.getCurrentPosition();
+        backRightDrive.setTargetPosition((int)(startingTicksBR + numTicks));
+
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // movement values
+        double axial = 0; // -gamepad1.left_stick_y;
+        double lateral = 0.25; //gamepad1.left_stick_x;
+        double yaw = 0; //gamepad1.right_stick_x;
+
+        // calculations for movement
+        double frontLeftPower = axial + lateral + yaw;
+        double frontRightPower = axial - lateral - yaw;
+        double backLeftPower = axial - lateral + yaw;
+        double backRightPower = axial + lateral - yaw;
+
+        double max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
+        max = Math.max(max, Math.abs(backLeftPower));
+        max = Math.max(max, Math.abs(backRightPower));
+
+        // lowers max wheel power if it exceeds threshold
+        if (max > 1.0) {
+            frontLeftPower /= max;
+            frontRightPower /= max;
+            backLeftPower /= max;
+            backRightPower /= max;
         }
-    }
 
-    public void driveStraightForTime(double durationSeconds, double power) {
+        // set power for wheels
+        frontLeftDrive.setPower(frontLeftPower);
+        frontRightDrive.setPower(frontRightPower);
+        backLeftDrive.setPower(backLeftPower);
+        backRightDrive.setPower(backRightPower);
 
-        runtime.reset();
+        while (opModeIsActive()) {
+            if (!frontLeftDrive.isBusy() && !frontRightDrive.isBusy() && !backLeftDrive.isBusy() && !backRightDrive.isBusy()) {
+                break;
+            }
 
+            telemetry.addData("Status", "Run Time: " + runtime.toString());
+            telemetry.addData("Front left/Right", "%4.2f, %4.2f", frontLeftPower, frontRightPower);
+            telemetry.addData("Back  left/Right", "%4.2f, %4.2f", backLeftPower, backRightPower);
+            telemetry.update();
+        }
 
-        while (opModeIsActive() && (runtime.seconds() < durationSeconds)) {
+        // run until the end of the match (driver presses STOP)
+        /* while (opModeIsActive() && (runtime.seconds() < 2.0)) {
+            double max;
 
-            frontLeftDrive.setPower(power);
-            frontRightDrive.setPower(power);
-            backLeftDrive.setPower(power);
-            backRightDrive.setPower(power);
+            // sets power so it runs w/o controller input
+            double axial = 0.75;// -gamepad1.left_stick_y;
+            double lateral = 0; //gamepad1.left_stick_x;
+            double yaw = 0; //gamepad1.right_stick_x;
 
+            frontLeftDrive.setPower(0.75);
+            frontRightDrive.setPower(0.75);
+            backLeftDrive.setPower(0.75);
+            backRightDrive.setPower(0.75);
+
+            double frontLeftPower = axial + lateral + yaw;
+            double frontRightPower = axial - lateral - yaw;
+            double backLeftPower = axial - lateral + yaw;
+            double backRightPower = axial + lateral - yaw;
+
+            max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
+            max = Math.max(max, Math.abs(backLeftPower));
+            max = Math.max(max, Math.abs(backRightPower));
+
+            if (max > 1.0) {
+                frontLeftPower /= max;
+                frontRightPower /= max;
+                backLeftPower /= max;
+                backRightPower /= max;
+            }
+
+            frontLeftDrive.setPower(frontLeftPower);
+            frontRightDrive.setPower(frontRightPower);
+            backLeftDrive.setPower(backLeftPower);
+            backRightDrive.setPower(backRightPower);
 
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
+            telemetry.addData("Front left/Right", "%4.2f, %4.2f", frontLeftPower, frontRightPower);
+            telemetry.addData("Back  left/Right", "%4.2f, %4.2f", backLeftPower, backRightPower);
             telemetry.addData("CRServo Power", "%5.2f", crServo_Right.getPower());
             telemetry.addData("CRServo Power", "%5.2f", crServo_Left.getPower());
             telemetry.addData("Paddle", "%5.2f", crServo_paddle.getPower());
             telemetry.update();
-        }
-    }
-    public void turnToHeading(double targetHeader, double speed) {
-        double headingThreshold = 1;
+        } */
 
-        while (opModeIsActive()) {
-            double currentHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-            double headingError = targetHeader - currentHeading;
-
-            while (headingError > 180) headingError -= 360;
-            while (headingError < -180) headingError += 360;
-
-            if (Math.abs(headingError) <= headingThreshold) {
-                stopRobot();
-                break;
-
-
-            }
-            double turnPower = Math.signum(headingError) * speed;
-            frontLeftDrive.setPower(-turnPower);
-            backLeftDrive.setPower(-turnPower);
-            frontRightDrive.setPower(turnPower);
-            backRightDrive.setPower(turnPower);
-        }
-    }
-    public void stopRobot() {
-        frontLeftDrive.setPower(0);
-        backLeftDrive.setPower(0);
-        frontRightDrive.setPower(0);
-        backRightDrive.setPower(0);
+        frontLeftDrive.setPower(0.0);
+        frontRightDrive.setPower(0.0);
+        backLeftDrive.setPower(0.0);
+        backRightDrive.setPower(0.0);
     }
 }
-
-
