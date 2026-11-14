@@ -93,10 +93,10 @@ public class MainAuto extends LinearOpMode {
         frontLeftDrive.setTargetPosition((int)(startingTicksFL + numTicks));
 
         double startingTicksFR = frontRightDrive.getCurrentPosition();
-        frontRightDrive.setTargetPosition((int)(startingTicksFR + numTicks));
+        frontRightDrive.setTargetPosition((int)(startingTicksFR - numTicks));
 
         double startingTicksBL = backLeftDrive.getCurrentPosition();
-        backLeftDrive.setTargetPosition((int)(startingTicksBL + numTicks));
+        backLeftDrive.setTargetPosition((int)(startingTicksBL - numTicks));
 
         double startingTicksBR = backRightDrive.getCurrentPosition();
         backRightDrive.setTargetPosition((int)(startingTicksBR + numTicks));
@@ -111,10 +111,12 @@ public class MainAuto extends LinearOpMode {
         backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        // movement values
         double axial = 0; // -gamepad1.left_stick_y;
-        double lateral = 0; //gamepad1.left_stick_x;
-        double yaw = 0.25; //gamepad1.right_stick_x;
+        double lateral = 0.25; //gamepad1.left_stick_x;
+        double yaw = 0; //gamepad1.right_stick_x;
 
+        // calculations for movement
         double frontLeftPower = axial + lateral + yaw;
         double frontRightPower = axial - lateral - yaw;
         double backLeftPower = axial - lateral + yaw;
@@ -124,6 +126,7 @@ public class MainAuto extends LinearOpMode {
         max = Math.max(max, Math.abs(backLeftPower));
         max = Math.max(max, Math.abs(backRightPower));
 
+        // lowers max wheel power if it exceeds threshold
         if (max > 1.0) {
             frontLeftPower /= max;
             frontRightPower /= max;
@@ -142,6 +145,7 @@ public class MainAuto extends LinearOpMode {
                 break;
             }
 
+            telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Front left/Right", "%4.2f, %4.2f", frontLeftPower, frontRightPower);
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f", backLeftPower, backRightPower);
             telemetry.update();
