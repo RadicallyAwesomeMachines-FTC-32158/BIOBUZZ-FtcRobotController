@@ -100,11 +100,18 @@ public class MainTeleOp extends LinearOpMode {
             double rx = gamepad1.right_stick_x;
 
             if (gamepad1.a) {
-                if (crServo_Left.getPower() == 0.0) {
-                    crServo_Left.setPower(0.25);
-                    crServo_Right.setPower(-0.25);
-                    Intake_Motor.setPower(1.0);
-                    flyWheel.setPower(0.55);
+                if (flyWheel.getPower() == 0.0) {
+                    flyWheel.setPower(0.46);
+                    if (gamepad1.y) {
+                        crServo_Left.setPower(-0.25);
+                        crServo_Right.setPower(0.25);
+                        Intake_Motor.setPower(-0.7);
+                    }
+                    else {
+                        crServo_Left.setPower(0.25);
+                        crServo_Right.setPower(-0.25);
+                        Intake_Motor.setPower(0.7);
+                    }
                 } else {
                     crServo_Left.setPower(0.0);
                     crServo_Right.setPower(0.0);
@@ -120,8 +127,8 @@ public class MainTeleOp extends LinearOpMode {
             }
             double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1.0);
             double frontLeftPower = (y + x + rx) / denominator;
-            double frontRightPower = (y - x + rx) / denominator;
-            double backLeftPower = (y - x - rx) / denominator;
+            double frontRightPower = (y - x -rx) / denominator;
+            double backLeftPower = (y - x + rx) / denominator;
             double backRightPower = (y + x - rx) / denominator;
 
 
