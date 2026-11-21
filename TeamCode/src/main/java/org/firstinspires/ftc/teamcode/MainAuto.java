@@ -112,8 +112,8 @@ public class MainAuto extends LinearOpMode {
         backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // movement values
-        double axial = 0; // -gamepad1.left_stick_y;
-        double lateral = 0.25; //gamepad1.left_stick_x;
+        double axial = -0.25; // -gamepad1.left_stick_y;
+        double lateral = 0; //gamepad1.left_stick_x;
         double yaw = 0; //gamepad1.right_stick_x;
 
         // calculations for movement
