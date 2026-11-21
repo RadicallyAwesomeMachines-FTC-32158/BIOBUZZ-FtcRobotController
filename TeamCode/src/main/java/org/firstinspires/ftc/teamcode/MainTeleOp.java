@@ -29,18 +29,21 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoController;
 import com.qualcomm.robotcore.hardware.ServoControllerEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 
-@TeleOp(name="MainOpMode", group="Linear OpMode")
+@TeleOp(name="MainTeleOp", group="Linear OpMode")
 // @Disabled
 public class MainTeleOp extends LinearOpMode {
 
@@ -79,6 +82,13 @@ public class MainTeleOp extends LinearOpMode {
         Intake_Motor.setDirection(DcMotor.Direction.FORWARD);
         flyWheel.setDirection(DcMotor.Direction.FORWARD);
 
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+
+
         // Wait for the game to start (driver presses START)
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -87,6 +97,13 @@ public class MainTeleOp extends LinearOpMode {
         frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         backLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         backRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        IMU imu = hardwareMap.get(IMU.class, "imu");
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
+                RevHubOrientationOnRobot.UsbFacingDirection.UP));
+        imu.initialize(parameters);
+
+        imu.resetYaw();
         waitForStart();
 
 
@@ -98,6 +115,12 @@ public class MainTeleOp extends LinearOpMode {
             double y = -gamepad1.left_stick_y;
             double x = gamepad1.left_stick_x;
             double rx = gamepad1.right_stick_x;
+
+            double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+            double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+            double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+
+            rotX = rotX * 1.05;
 
             if (gamepad1.a) {
                 if (flyWheel.getPower() == 0.0) {
@@ -125,11 +148,11 @@ public class MainTeleOp extends LinearOpMode {
             } else {
                 crServo_paddle.setPower(0);
             }
-            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1.0);
-            double frontLeftPower = (y + x + rx) / denominator;
-            double frontRightPower = (y - x -rx) / denominator;
-            double backLeftPower = (y - x + rx) / denominator;
-            double backRightPower = (y + x - rx) / denominator;
+            double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1.0);
+            double frontLeftPower = (rotY + rotX + rx) / denominator;
+            double frontRightPower = (rotY - rotX -rx) / denominator;
+            double backLeftPower = (rotY - rotX + rx) / denominator;
+            double backRightPower = (rotY + rotX - rx) / denominator;
 
 
 
